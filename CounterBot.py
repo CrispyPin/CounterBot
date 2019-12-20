@@ -1,4 +1,3 @@
-#py -3.6 "Discord bot/discordbot.py"
 import discord
 import datetime
 import time
@@ -11,7 +10,7 @@ bot = commands.Bot(command_prefix=".")
 bot.remove_command("help")
 
 save_file = "./count_info.txt"
-presence = discord.Game(name="with numbers [.help]")
+presence = discord.Activity(name="counting counters | .help")
 
 count_guilds = {}
 
@@ -40,7 +39,6 @@ r = roman numerals counting
 ```"""
 credit_text = """```css
 CounterBot made by: @CrispyPin#1149
-Server hosted by:   @Lucemans#2066
 Contributer:        @Kantoros1#4862
 ```"""
 
@@ -127,7 +125,7 @@ class CountGuild:
             if self.channels[c] == message.channel:
                 ctype = c
                 break
-        if ctype == "":# not a count channel, shouldn't actually happen
+        if not ctype:# not a count channel, shouldn't actually happen
             return True# don't want to delete if not in a count channel
 
         if message.author.mention == self.latest[ctype]:
@@ -162,7 +160,6 @@ def to_num(x):
         return int(x)
     except Exception:
         return "no"
-
 
 def load():
     with open(save_file)as f:
