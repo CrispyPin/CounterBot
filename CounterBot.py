@@ -229,6 +229,8 @@ async def find_mistakes(ctx, t="c", limit=None):
     if not is_master(ctx.author):
         await ctx.send("`Permission denied.`")
         return
+    if t == "i":
+        await gld.bot_channel.send("`OMG THIS CODE IS A FUCKING MESS YOU WEREN'T SUPPOSED TO DO THAT HELP ME`")
     if t not in gld.counts:
         await gld.bot_channel.send("`Unknown type. Use '.help' for help.`")
         return
@@ -292,7 +294,7 @@ async def cred(ctx):
 
 @bot.command(name="alephnull")
 async def kill_bot(ctx):
-    if ctx.author.mention == "<@!316553438186045441>":
+    if ctx.author.mention in["<@!316553438186045441>", "<@316553438186045441>"]:
         print(f"Closed by {ctx.author.name}#{ctx.author.discriminator} in guild: {ctx.guild.name}")
         for guild in bot.guilds:
             gld = count_guilds[guild]
