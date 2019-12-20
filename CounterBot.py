@@ -37,9 +37,10 @@ c = regular counting
 b = backwards counting
 r = roman numerals counting
 ```"""
-credit_text = """```css
+credit_text = """```
 CounterBot made by: @CrispyPin#1149
 Contributer:        @Kantoros1#4862
+Moral support:      Pingu
 ```"""
 
 numerals = {"I":1, "V":5, "X":10, "L":50, "C":100, "D":500, "M":1000}
