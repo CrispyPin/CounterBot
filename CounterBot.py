@@ -10,7 +10,7 @@ bot = commands.Bot(command_prefix=".")
 bot.remove_command("help")
 
 save_file = "./count_info.txt"
-presence = discord.Activity(name="counting counters | .help")
+presence = discord.Game(name="with numbers | .help")
 
 count_guilds = {}
 
@@ -284,7 +284,7 @@ async def cred(ctx):
 
 @bot.command(name="alephnull")
 async def kill_bot(ctx):
-    if ctx.author.mention == "<@316553438186045441>":
+    if ctx.author.mention == "<@!316553438186045441>":
         print(f"Closed by {ctx.author.name}#{ctx.author.discriminator} in guild: {ctx.guild.name}")
         for guild in bot.guilds:
             gld = count_guilds[guild]
@@ -309,6 +309,8 @@ async def manual_save(ctx):
 @bot.event
 async def on_ready():
     print(f"CONNECTED\nLogged in as {bot.user.name}")
+    await bot.change_presence(activity=presence)
+
     #print(bot.user.id)
     print("guilds:")
     for guild in bot.guilds:
@@ -327,8 +329,6 @@ async def on_ready():
             for c in gld.channels:
                 if gld.channels[c] == None:
                     await gld.bot_channel.send(f"{channel_error}{channel_names[c]}.```")
-    await bot.change_presence(activity=presence)
-
 @bot.event
 async def on_disconnect():
     print(f"Disconnected on {time.ctime()}")
