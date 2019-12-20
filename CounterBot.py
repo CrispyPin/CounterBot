@@ -231,6 +231,7 @@ async def find_mistakes(ctx, t="c", limit=None):
         return
     if t == "i":
         await gld.bot_channel.send("`OMG THIS CODE IS A FUCKING MESS YOU WEREN'T SUPPOSED TO DO THAT HELP ME`")
+        return
     if t not in gld.counts:
         await gld.bot_channel.send("`Unknown type. Use '.help' for help.`")
         return
