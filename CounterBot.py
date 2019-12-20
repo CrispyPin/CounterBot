@@ -238,7 +238,7 @@ async def find_mistakes(ctx, t="c", limit=None):
         new = eval(eval_num[t])
         if not eval(count_valid[t]):
             await ctx.send(f"`Located miscount around {old} - {new}`")
-        old = new
+        old = new if new != "Invalid" else old
     await ctx.send("`Done checking for errors.`")
 
 @bot.command(name="set")
