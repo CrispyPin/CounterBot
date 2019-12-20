@@ -292,6 +292,7 @@ async def kill_bot(ctx):
                 await gld.bot_channel.send(shutdown_msg)
         await bot.close()
     else:
+        print(f"{ctx.author.mention} tried to kill bot")
         await ctx.send("`Permission denied.`")
 
 @bot.command(name="save")
