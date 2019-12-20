@@ -4,7 +4,9 @@ import datetime
 import time
 from discord.ext import commands
 
-TOKEN = ""
+with open("token.txt") as f:
+    TOKEN = f.readline()
+
 bot = commands.Bot(command_prefix=".")
 bot.remove_command("help")
 
