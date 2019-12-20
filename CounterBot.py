@@ -53,7 +53,7 @@ def Latinize(inp):
         if num[i] in numerals:
             num[i] = numerals[num[i]]
         elif num[i] != "_":
-            return "no"
+            return "Invalid"
         if num[i] == '_':
             Thousands = not Thousands
         elif Thousands:
@@ -71,8 +71,8 @@ def Latinize(inp):
     return result
 
 channel_names = {"c":"counting", "b":"counting-backwards", "r":"roman-numerals"}
-count_valids = {"c":"new == old+1", "b":"new == old-1", "r":"new == old+1"}# expression saying if new is valid
-count_funcs = {"c":"to_num(new)", "b":"to_num(new)", "r":"Latinize(new)"}# raw input -> integer
+count_valid = {"c":"new == old+1", "b":"new == old-1", "r":"new == old+1"}# expression saying if new is valid
+eval_num = {"c":"to_num(new)", "b":"to_num(new)", "r":"Latinize(new)"}# raw input -> integer
 
 def milestr(value, t, user, prev):
     date = datetime.date.today()
@@ -86,7 +86,7 @@ class CountGuild:
         self.milestone_channel = None
         
         self.counts = {"c":0, "b":0, "r":0}
-        self.latest = {"c":"no", "b":"no", "r":"no"}
+        self.latest = {"c":"Invalid", "b":"Invalid", "r":"Invalid"}
         self.milestones = {"c":[], "b":[], "r":[]}
         self.channels = {"c":None, "b":None, "r":None}
         
@@ -131,10 +131,10 @@ class CountGuild:
         if message.author.mention == self.latest[ctype]:
             return False
         new = message.content.split()[0]
-        new = eval(count_funcs[ctype])
+        new = eval(eval_num[ctype])
         old = self.counts[ctype]
         
-        if eval(count_valids[ctype]):
+        if eval(count_valid[ctype]):
             self.counts[ctype] = new
             ms = self.ms_update(ctype, message.author.mention)
             self.latest[ctype] = message.author.mention
@@ -159,7 +159,7 @@ def to_num(x):
     try:
         return int(x)
     except Exception:
-        return "no"
+        return "Invalid"
 
 def load():
     with open(save_file)as f:
@@ -227,16 +227,16 @@ async def find_mistakes(ctx, t="c", limit=None):
     
     await ctx.send(f"`Scanning for errors in #{channel_names[t]}`")
     lim = to_num(limit)
-    lim = lim if lim != "no" else None
+    lim = lim if lim != "Invalid" else None
     history = await gld.channels[t].history(limit=lim).flatten()
     history.reverse()
     new = history[0].content.split()[0]
-    old = eval(count_funcs[t])
+    old = eval(eval_num[t])
 
     for msg in history[1:]:
         new = msg.content.split()[0]
-        new = eval(count_funcs[t])
-        if not eval(count_valids[t]):
+        new = eval(eval_num[t])
+        if not eval(count_valid[t]):
             await ctx.send(f"`Located miscount around {old} - {new}`")
         old = new
     await ctx.send("`Done checking for errors.`")
@@ -253,10 +253,10 @@ async def setcount(ctx, t="c", amount="42"):
         await ctx.send("`Permission denied.`")
         return
     n = to_num(amount)
-    if n == "no":
+    if n == "Invalid":
         await ctx.send("`[Error] Invalid number.`")
         return
-    gld.counts[t] = amount
+    gld.counts[t] = n
     save()
     await ctx.send(f"`#{channel_names[t]} progress is now {gld.counts[t]}`")
 
