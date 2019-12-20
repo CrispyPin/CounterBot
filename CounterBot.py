@@ -36,11 +36,12 @@ t = type of counting
 c = regular counting
 b = backwards counting
 r = roman numerals counting
+i = binary counting
 ```"""
 credit_text = """```
 CounterBot made by: @CrispyPin#1149
 Contributer:        @Kantoros1#4862
-Moral support:      Pingu
+Moral support:      Pingu (my Cat)
 ```"""
 
 numerals = {"I":1, "V":5, "X":10, "L":50, "C":100, "D":500, "M":1000}
@@ -71,9 +72,9 @@ def Latinize(inp):
         num.pop(0)
     return result
 
-channel_names = {"c":"counting", "b":"counting-backwards", "r":"roman-numerals"}
-count_valid = {"c":"new == old+1", "b":"new == old-1", "r":"new == old+1"}# expression saying if new is valid
-eval_num = {"c":"to_num(new)", "b":"to_num(new)", "r":"Latinize(new)"}# raw input -> integer
+channel_names = {"c":"counting", "b":"counting-backwards", "r":"roman-numerals", "i":"binary-counting"}
+count_valid = {"c":"new == old+1", "b":"new == old-1", "r":"new == old+1", "i":"new == old+1"}# expression saying if new is valid
+eval_num = {"c":"to_num(new)", "b":"to_num(new)", "r":"Latinize(new)", "i":"bint(new)"}# raw input -> integer
 
 def milestr(value, t, user, prev):
     date = datetime.date.today()
@@ -86,10 +87,10 @@ class CountGuild:
         self.bot_channel = None
         self.milestone_channel = None
         
-        self.counts = {"c":0, "b":0, "r":0}
-        self.latest = {"c":"Invalid", "b":"Invalid", "r":"Invalid"}
-        self.milestones = {"c":[], "b":[], "r":[]}
-        self.channels = {"c":None, "b":None, "r":None}
+        self.counts = {"c":0, "b":0, "r":0, "i":0}
+        self.latest = {"c":"Invalid", "b":"Invalid", "r":"Invalid", "i":"Invalid"}
+        self.milestones = {"c":[], "b":[], "r":[], "i":[]}
+        self.channels = {"c":None, "b":None, "r":None, "i":None}
         
         for channel in guild.channels:
             if channel.name == "bot":
@@ -149,7 +150,7 @@ class CountGuild:
         return milestr(self.counts[t], t, user, self.latest[t])
 
 def is_master(user):
-    if user.mention == "<@316553438186045441>":
+    if user.mention == "<@!316553438186045441>":
         return True
     for role in user.roles:
         if role.name == "Count Master":
@@ -159,6 +160,12 @@ def is_master(user):
 def to_num(x):
     try:
         return int(x)
+    except Exception:
+        return "Invalid"
+
+def bint(x):
+    try:
+        return int(x, 2)
     except Exception:
         return "Invalid"
 
