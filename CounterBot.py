@@ -285,7 +285,7 @@ async def cred(ctx):
 
 @bot.command(name="alephnull")
 async def kill_bot(ctx):
-    if ctx.author.mention == "<@!316553438186045441>":
+    if "316553438186045441" in ctx.author.mention:
         print(f"Closed by {ctx.author.name}#{ctx.author.discriminator} in guild: {ctx.guild.name}")
         for guild in bot.guilds:
             gld = count_guilds[guild]
