@@ -1,0 +1,21 @@
+{
+    "help": ["```ini",
+    "-[List of commands]-``````css",
+    ".help     : show this list",
+    ".count {t}: show counting progress of type t",
+    ".credits  : show info on who made this possible",
+    "[Admin commands]",
+    ".set {t} {x} : manually set the count progress of type t to x",
+    ".find {t} {L}: looks for errors in channel t. looks back to L if specified, else to start",
+    ".save        : saves all counting info",
+    ".alephnull   : terminate CounterBot",
+    "[Argument types]",
+    "x = a number",
+    "L = limit",
+    "t = type of counting",
+    "[Values for t]",
+    "c = regular counting",
+    "b = backwards counting",
+    "r = roman numerals counting",
+    "```"]
+}

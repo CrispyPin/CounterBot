@@ -71,6 +71,10 @@ def Latinize(inp):
         num.pop(0)
     return result
 
+class Cchannel:
+    def __init__(self, channel, ctype):
+        pass
+
 channel_names = {"c":"counting", "b":"counting-backwards", "r":"roman-numerals"}
 count_valid = {"c":"new == old+1", "b":"new == old-1", "r":"new == old+1"}# expression saying if new is valid
 eval_num = {"c":"to_num(new)", "b":"to_num(new)", "r":"Latinize(new)"}# raw input -> integer
