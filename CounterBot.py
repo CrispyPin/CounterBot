@@ -1,6 +1,7 @@
 import discord
 import datetime
 import time
+import json
 from discord.ext import commands
 
 with open("token.txt") as f:
@@ -10,13 +11,14 @@ bot = commands.Bot(command_prefix=".")
 bot.remove_command("help")
 
 save_file = "./count_info.txt"
+string_file = "./strings.json"
 presence = discord.Game(name="with numbers | .help")
 
 count_guilds = {}
 
 channel_error = "```css\n[Error] Couldn't find channel "
 join_msg = """```ini
-[CounterBot 2.0 has connected.] Type .help for a list of commands."""
+[CounterBot 3.0 has connected.] Type .help for a list of commands."""
 shutdown_msg = "```ini\n[CounterBot has been deactivated] Cannot count beyond Aleph-null```"
 help_text = """```ini
 -[List of commands]-``````css
@@ -43,41 +45,91 @@ Contributer:        @Kantoros1#4862
 Moral support:      Pingu
 ```"""
 
-numerals = {"I":1, "V":5, "X":10, "L":50, "C":100, "D":500, "M":1000}
+class Parse:
+    def roman(x):
+        """Original by @Kantoros1#4862, modified"""
+        inp = x.split()[0]
+        numerals = {"I":1, "V":5, "X":10, "L":50, "C":100, "D":500, "M":1000}
+        
+        num = list(inp.upper().replace('__','_'))
+        Thousands = False
 
-## from @Kantoros1#4862, modified
-def Latinize(inp):
-    num = list(inp.upper().replace('__','_'))
-    Thousands = False
+        for i in range(len(num)):
+            if num[i] in numerals:
+                num[i] = numerals[num[i]]
+            elif num[i] != "_":
+                return "Invalid"
+            if num[i] == '_':
+                Thousands = not Thousands
+            elif Thousands:
+                num[i] *= 1000
+        
+        num = list(filter(lambda a:a != '_',num))
+        
+        result = 0
+        while len(num)>0:
+            if num[0] < max(num):
+                result -= num[0]
+            else:
+                result += num[0]
+            num.pop(0)
+        return result
 
-    for i in range(len(num)):
-        if num[i] in numerals:
-            num[i] = numerals[num[i]]
-        elif num[i] != "_":
-            return "Invalid"
-        if num[i] == '_':
-            Thousands = not Thousands
-        elif Thousands:
-            num[i] *= 1000
+    def int(x):
+        n = x.split()[0]
+        if n.isdecimal():
+            return int(n)
+        if len(n) > 1:
+            if n[0] == "-" and n[1:].isdecimal():
+                return int(n[1:])
+        return False
+
+    def bin(x):
+        b = x.replace(" ", "")
+        if False in [i in ["0","1"]for i in b]:#any non 0/1 characters in the string
+            return False
+        return int(b, 2)
+
+class Ctypes:
+    def inc(old, new):
+        return new == old+1
     
-    num = list(filter(lambda a:a != '_',num))
+    def dec(old, new):
+        return new == old-1
     
-    result = 0
-    while len(num)>0:
-        if num[0] < max(num):
-            result -= num[0]
-        else:
-            result += num[0]
-        num.pop(0)
-    return result
+    def sqr(old, new):
+        s = math.sqrt(new)
+        return int(s) == s and int(s) == int(math.sqrt(old)) + 1
+
+## p n r b s
+
+CHECKS = {"p":Ctypes.inc, "n":Ctypes.dec, "r":Ctypes.inc,
+          "b":Ctypes.inc, "s":Ctypes.sqr}
+
+PARSERS = {"p":Parse.int, "n":Parse.int, "r":Parse.roman,
+         "b":Parse.bin, "s":Parse.int}
+
+# TODO: add to json instead
+NAMES = {"p":"counting", "n":"counting-backwards", "r":"roman-numerals", "b":"binary-counting", "s":"square-numbers"}
+
 
 class Cchannel:
     def __init__(self, channel, ctype):
+        """Channel object, "p" """
+        self.channel = channel
+        self.name = channel.name
+        self.ctype = ctype
+        self.progress = 0
+        self.prev = "@someone"
+
+        self.check = CHECKS[ctype]
+        self.parse = PARSERS[ctype]
+
+    def check(self):#TODO also add milestone here
         pass
 
-channel_names = {"c":"counting", "b":"counting-backwards", "r":"roman-numerals"}
-count_valid = {"c":"new == old+1", "b":"new == old-1", "r":"new == old+1"}# expression saying if new is valid
-eval_num = {"c":"to_num(new)", "b":"to_num(new)", "r":"Latinize(new)"}# raw input -> integer
+    def parse(self, x):
+        return int(x)
 
 def milestr(value, t, user, prev):
     date = datetime.date.today()
@@ -90,10 +142,7 @@ class CountGuild:
         self.bot_channel = None
         self.milestone_channel = None
         
-        self.counts = {"c":0, "b":0, "r":0}
-        self.latest = {"c":"Invalid", "b":"Invalid", "r":"Invalid"}
-        self.milestones = {"c":[], "b":[], "r":[]}
-        self.channels = {"c":None, "b":None, "r":None}
+        self.channels = {t:None for t in NAMES}
         
         for channel in guild.channels:
             if channel.name == "bot":
@@ -101,9 +150,10 @@ class CountGuild:
             elif channel.name == "milestones":
                 self.milestone_channel = channel
             else:
-                for c in self.channels:
-                    if channel_names[c] == channel.name:
-                        self.channels[c] = channel
+                for t in self.channels:
+                    if channel_names[t] == channel.name:
+                        self.channels[t] = Cchannel(channel, t)
+        
         if self.bot_channel == None:
             print(f"<{guild.name}> Couldn't find channel 'bot'.")
         if self.milestone_channel == None:
@@ -112,14 +162,12 @@ class CountGuild:
             if self.channels[channel] == None:
                 print(f"<{guild.name}> Couldn't find channel '{channel_names[channel]}'")
 
-    def save_str(self):
+    def save_str(self):#TODO: save as json!
         data = self.guild.name + "\n"
         for count in self.counts:
             data += f"{self.counts[count]}\n"
         for counter in self.latest:
             data += f"{self.latest[counter]}\n"
-        for ms in self.milestones:
-            data += f"{self.milestones[ms]}\n"
         return data
 
     def try_count(self, message):
@@ -127,24 +175,18 @@ class CountGuild:
         #returns True if message should stay
         ctype = ""
         for c in self.channels:
-            if self.channels[c] == message.channel:
+            if self.channels[c].channel == message.channel:
                 ctype = c
                 break
         if not ctype:# not a count channel, shouldn't actually happen
             return True# don't want to delete if not in a count channel
 
-        if message.author.mention == self.latest[ctype]:
+        cch = self.channels[ctype]
+
+        if message.author.mention == cch.prev:
             return False
-        new = message.content.split()[0]
-        new = eval(eval_num[ctype])
-        old = self.counts[ctype]
-        
-        if eval(count_valid[ctype]):
-            self.counts[ctype] = new
-            ms = self.ms_update(ctype, message.author.mention)
-            self.latest[ctype] = message.author.mention
-            return [True,ms]
-        return False
+
+        return cch.check(message.content)
 
     def ms_update(self, t, user):
         if self.counts[t] % 1000 != 0:
@@ -159,12 +201,6 @@ def is_master(user):
         if role.name == "Count Master":
             return True
     return False
-
-def to_num(x):
-    try:
-        return int(x)
-    except Exception:
-        return "Invalid"
 
 def load():
     with open(save_file)as f:
