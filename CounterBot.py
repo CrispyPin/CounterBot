@@ -10,11 +10,21 @@ with open("token.txt") as f:
 bot = commands.Bot(command_prefix=".")
 bot.remove_command("help")
 
-save_file = "./count_info.txt"
+save_file = "./data.json"
 string_file = "./strings.json"
 presence = discord.Game(name="with numbers | .help")
 
 count_guilds = {}
+STRINGS = {}
+
+def reload_strings():
+    global STRINGS
+    with open(string_file) as f:
+        STRINGS = json.load(f)
+    for k in STRINGS:
+        STRINGS[k] = "".join(STRINGS[k])
+
+reload_strings()
 
 channel_error = "```css\n[Error] Couldn't find channel "
 join_msg = """```ini
@@ -86,7 +96,7 @@ class Parse:
 
     def bin(x):
         b = x.replace(" ", "")
-        if False in [i in ["0","1"]for i in b]:#any non 0/1 characters in the string
+        if False in [i in ["0","1"]for i in b]:#find non 0/1 characters in the string
             return False
         return int(b, 2)
 
@@ -142,7 +152,7 @@ class CountGuild:
         self.bot_channel = None
         self.milestone_channel = None
         
-        self.channels = {t:None for t in NAMES}
+        self.channels = {t:None for t in PARSERS}
         
         for channel in guild.channels:
             if channel.name == "bot":
@@ -151,7 +161,7 @@ class CountGuild:
                 self.milestone_channel = channel
             else:
                 for t in self.channels:
-                    if channel_names[t] == channel.name:
+                    if NAMES[t] == channel.name:
                         self.channels[t] = Cchannel(channel, t)
         
         if self.bot_channel == None:
@@ -160,7 +170,7 @@ class CountGuild:
             print(f"<{guild.name}> Couldn't find channel 'milestones'.")
         for channel in self.channels:
             if self.channels[channel] == None:
-                print(f"<{guild.name}> Couldn't find channel '{channel_names[channel]}'")
+                print(f"<{guild.name}> Couldn't find channel '{NAMES[channel]}'")
 
     def save_str(self):#TODO: save as json!
         data = self.guild.name + "\n"
@@ -198,11 +208,11 @@ def is_master(user):
     if user.mention == "<@316553438186045441>":
         return True
     for role in user.roles:
-        if role.name == "Count Master":
+        if role.name.lower() == "count master":
             return True
     return False
 
-def load():
+def load():#TODO json
     with open(save_file)as f:
         alldata = f.read().split("\n\n")
     for gld_data in alldata:
@@ -227,7 +237,7 @@ def load():
             line += 1
     print("Loaded counting data")
     
-def save():
+def save():#TODO json
     data = ""
     for gld in count_guilds:
         data += count_guilds[gld].save_str()
@@ -313,15 +323,13 @@ async def getcount(ctx, t="c"):
 
 @bot.command(name="help")
 async def h(ctx):
-    gld = count_guilds[ctx.guild]
-##    if ctx.message.channel == gld.bot_channel:
-    await ctx.send(help_text)
+    await ctx.send(STRINGS["help"])
 
 @bot.command(name="credits")
 async def cred(ctx):
     gld = count_guilds[ctx.guild]
 ##    if ctx.message.channel == gld.bot_channel:
-    await ctx.send(credit_text)
+    await ctx.send(STRINGS["credits"])
 
 @bot.command(name="alephnull")
 async def kill_bot(ctx):
@@ -330,7 +338,7 @@ async def kill_bot(ctx):
         for guild in bot.guilds:
             gld = count_guilds[guild]
             if gld.bot_channel != None:
-                await gld.bot_channel.send(shutdown_msg)
+                await gld.bot_channel.send(STRINGS["shutdown"])
         await bot.close()
     else:
         print(f"{ctx.author.mention} tried to kill bot")
@@ -345,10 +353,10 @@ async def manual_save(ctx):
         await ctx.send("`Permission denied.`")
         return
     save()
-    await ctx.send("`Saved all counting info`")
+    await ctx.send("`Saved all counting data`")
 
 @bot.event
-async def on_ready():
+async def on_ready():# TODO: handle missing channels
     print(f"CONNECTED\nLogged in as {bot.user.name}")
     await bot.change_presence(activity=presence)
 
@@ -362,14 +370,14 @@ async def on_ready():
     for guild in bot.guilds:
         gld = count_guilds[guild]
         if gld.bot_channel != None:
-            join = join_msg
-            for ctype in gld.counts:
-                join += f"\n#{channel_names[ctype]} progress is [{gld.counts[ctype]}]."
-            join += "\nPlease update if incorrect.```"
+            join = STRINGS["join"]
+            for ctype in gld.channels:
+                join += STRINGS["progress"]%(NAMES[ctype], gld.channels[ctype].progress)
+            join += STRINGS["join_end"]
             await gld.bot_channel.send(join)
             for c in gld.channels:
                 if gld.channels[c] == None:
-                    await gld.bot_channel.send(f"{channel_error}{channel_names[c]}.```")
+                    await gld.bot_channel.send(STRINGS["channel_error"] % NAMES[c])
 @bot.event
 async def on_disconnect():
     print(f"Disconnected on {time.ctime()}")
