@@ -15,45 +15,20 @@ string_file = "./strings.json"
 presence = discord.Game(name="with numbers | .help")
 
 count_guilds = {}
-STRINGS = {}
 
 def reload_strings():
-    global STRINGS
+    global MSGS
+    global NAMES
+    global ERRORS
     with open(string_file) as f:
-        STRINGS = json.load(f)
-    for k in STRINGS:
-        STRINGS[k] = "".join(STRINGS[k])
+        data = json.load(f)
+    MSGS = data["messages"]
+    NAMES = data["names"]
+    ERRORS = data["errors"]
+    for k in MSGS:
+        MSGS[k] = "".join(MSGS[k])
 
 reload_strings()
-
-channel_error = "```css\n[Error] Couldn't find channel "
-join_msg = """```ini
-[CounterBot 3.0 has connected.] Type .help for a list of commands."""
-shutdown_msg = "```ini\n[CounterBot has been deactivated] Cannot count beyond Aleph-null```"
-help_text = """```ini
--[List of commands]-``````css
-.help     : show this list
-.count {t}: show counting progress of type t
-.credits  : show info on who made this possible
-[Admin commands]
-.set {t} {x} : manually set the count progress of type t to x
-.find {t} {L}: looks for errors in channel t. looks back to L if specified, else to start
-.save        : saves all counting info
-.alephnull   : terminate CounterBot
-[Argument types]
-x = a number
-L = limit
-t = type of counting
-[Values for t]
-c = regular counting
-b = backwards counting
-r = roman numerals counting
-```"""
-credit_text = """```
-CounterBot made by: @CrispyPin#1149
-Contributer:        @Kantoros1#4862
-Moral support:      Pingu
-```"""
 
 class Parse:
     def roman(x):
@@ -109,7 +84,7 @@ class Ctypes:
     
     def sqr(old, new):
         s = math.sqrt(new)
-        return int(s) == s and int(s) == int(math.sqrt(old)) + 1
+        return s == int(math.sqrt(old)) + 1
 
 ## p n r b s
 
@@ -119,13 +94,9 @@ CHECKS = {"p":Ctypes.inc, "n":Ctypes.dec, "r":Ctypes.inc,
 PARSERS = {"p":Parse.int, "n":Parse.int, "r":Parse.roman,
          "b":Parse.bin, "s":Parse.int}
 
-# TODO: add to json instead
-NAMES = {"p":"counting", "n":"counting-backwards", "r":"roman-numerals", "b":"binary-counting", "s":"square-numbers"}
-
-
 class Cchannel:
     def __init__(self, channel, ctype):
-        """Channel object, "p" """
+        """(Channel object, "p")"""
         self.channel = channel
         self.name = channel.name
         self.ctype = ctype
@@ -135,11 +106,11 @@ class Cchannel:
         self.check = CHECKS[ctype]
         self.parse = PARSERS[ctype]
 
-    def check(self):#TODO also add milestone here
-        pass
+    def try_count(self, txt):#TODO add milestones
+        num = self.parse(txt.replace(" ",""))#TODO detect & strip off messages?
+        
+        return self.check(self.progress, num)
 
-    def parse(self, x):
-        return int(x)
 
 def milestr(value, t, user, prev):
     date = datetime.date.today()
@@ -173,11 +144,7 @@ class CountGuild:
                 print(f"<{guild.name}> Couldn't find channel '{NAMES[channel]}'")
 
     def save_str(self):#TODO: save as json!
-        data = self.guild.name + "\n"
-        for count in self.counts:
-            data += f"{self.counts[count]}\n"
-        for counter in self.latest:
-            data += f"{self.latest[counter]}\n"
+        data = {"test": 123}
         return data
 
     def try_count(self, message):
@@ -196,7 +163,7 @@ class CountGuild:
         if message.author.mention == cch.prev:
             return False
 
-        return cch.check(message.content)
+        return cch.try_count(message.content)
 
     def ms_update(self, t, user):
         if self.counts[t] % 1000 != 0:
@@ -238,14 +205,12 @@ def load():#TODO json
     print("Loaded counting data")
     
 def save():#TODO json
-    data = ""
+    data = {}
     for gld in count_guilds:
-        data += count_guilds[gld].save_str()
-        data += "\n"
-    data = data[:-2]
-    with open(save_file, "w")as f:
-        f.write(data)
-    
+        data[gld.id] = count_guilds[gld].save_str()
+    with open(save_file, "w") as fp:
+        json.dump(data, fp)
+
     print("Saved info")
 
 @bot.event
@@ -256,7 +221,7 @@ async def on_message(message):
     
     if message.channel in gld.channels.values():
         counted = gld.try_count(message)
-        if counted == False:
+        if not counted:
             await message.delete()
         elif type(counted) == list:
             if counted[1]:
@@ -265,15 +230,15 @@ async def on_message(message):
         await bot.process_commands(message)
 
 @bot.command(name="find")
-async def find_mistakes(ctx, t="c", limit=None):
+async def find_mistakes(ctx, t="p", limit=None):# TODO: rewrite to work with new count functions
     gld = count_guilds[ctx.guild]
 ##    if ctx.message.channel != gld.bot_channel:
 ##        return
     if not is_master(ctx.author):
-        await ctx.send("`Permission denied.`")
+        await ctx.send(ERRORS["perm"])
         return
     if t not in gld.counts:
-        await gld.bot_channel.send("`Unknown type. Use '.help' for help.`")
+        await gld.bot_channel.send(ERRORS["type"])
         return
     
     await ctx.send(f"`Scanning for errors in #{channel_names[t]}`")
@@ -293,23 +258,22 @@ async def find_mistakes(ctx, t="c", limit=None):
     await ctx.send("`Done checking for errors.`")
 
 @bot.command(name="set")
-async def setcount(ctx, t="c", amount="42"):
+async def setcount(ctx, t="p", amount="42"):
     gld = count_guilds[ctx.guild]
-##    if ctx.message.channel != gld.bot_channel:
-##        return
-    if t not in gld.counts:
-        await gld.bot_channel.send("`Unknown type. Use '.help' for help.`")
+    if t not in gld.channels:
+        await gld.bot_channel.send(ERRORS["type"])
         return
     if not is_master(ctx.author):
-        await ctx.send("`Permission denied.`")
+        await ctx.send(ERRORS["perm"])
         return
-    n = to_num(amount)
-    if n == "Invalid":
-        await ctx.send("`[Error] Invalid number.`")
+    n = int(amount) if amount.isdecimal() or (len(amount)>1
+                            and amount[0]=="-" and amount[1:].isdecimal()) else None
+    if n == None:
+        await ctx.send(ERRORS["num"])
         return
-    gld.counts[t] = n
+    gld.channels[t].progress = n
     save()
-    await ctx.send(f"`#{channel_names[t]} progress is now {gld.counts[t]}`")
+    await ctx.send(f"`#{NAMES[t]} progress is now {n}`")
 
 @bot.command(name="count")
 async def getcount(ctx, t="c"):
@@ -317,32 +281,32 @@ async def getcount(ctx, t="c"):
 ##    if ctx.message.channel != gld.bot_channel:
 ##        return
     if t not in gld.counts:
-        await gld.bot_channel.send("`Unknown type. Use '.help' for help.`")
+        await gld.bot_channel.send(ERRORS["type"])
         return
-    await gld.bot_channel.send(f"`#{channel_names[t]} progress is {gld.counts[t]}`")
+    await gld.bot_channel.send(f"`#{NAMES[t]} progress is {gld.cchannels[t].progress}`")
 
 @bot.command(name="help")
 async def h(ctx):
-    await ctx.send(STRINGS["help"])
+    await ctx.send(MSGS["help"])
 
 @bot.command(name="credits")
 async def cred(ctx):
     gld = count_guilds[ctx.guild]
 ##    if ctx.message.channel == gld.bot_channel:
-    await ctx.send(STRINGS["credits"])
+    await ctx.send(MSGS["credits"])
 
-@bot.command(name="alephnull")
+@bot.command(name="dave")#TODO change back to alephnull before deploy
 async def kill_bot(ctx):
     if "316553438186045441" in ctx.author.mention:
         print(f"Closed by {ctx.author.name}#{ctx.author.discriminator} in guild: {ctx.guild.name}")
         for guild in bot.guilds:
             gld = count_guilds[guild]
             if gld.bot_channel != None:
-                await gld.bot_channel.send(STRINGS["shutdown"])
+                await gld.bot_channel.send(MSGS["shutdown"])
         await bot.close()
     else:
         print(f"{ctx.author.mention} tried to kill bot")
-        await ctx.send("`Permission denied.`")
+        await ctx.send(ERRORS["perm"])
 
 @bot.command(name="save")
 async def manual_save(ctx):
@@ -350,34 +314,40 @@ async def manual_save(ctx):
     if ctx.message.channel != gld.bot_channel:
         return
     if not is_master(ctx.author):
-        await ctx.send("`Permission denied.`")
+        await ctx.send(ERRORS["perm"])
         return
     save()
     await ctx.send("`Saved all counting data`")
 
+def join_msg(gld):
+    join = MSGS["join"]
+    for ctype in gld.channels:
+        if gld.channels[ctype]:
+            join += MSGS["progress"].replace("CHANNEL",NAMES[ctype])%gld.channels[ctype].progress
+    join += MSGS["join_end"]
+    return join
+
 @bot.event
-async def on_ready():# TODO: handle missing channels
-    print(f"CONNECTED\nLogged in as {bot.user.name}")
+async def on_ready():
+    print(f"CONNECTED\n{time.ctime()}\nLogged in as {bot.user.name}")
     await bot.change_presence(activity=presence)
 
-    #print(bot.user.id)
-    print("guilds:")
+    print("Guilds:")
     for guild in bot.guilds:
         print(guild.name)
         count_guilds[guild] = CountGuild(guild)
     print("-----")
     load()
-    for guild in bot.guilds:
+    for guild in count_guilds:
         gld = count_guilds[guild]
-        if gld.bot_channel != None:
-            join = STRINGS["join"]
-            for ctype in gld.channels:
-                join += STRINGS["progress"]%(NAMES[ctype], gld.channels[ctype].progress)
-            join += STRINGS["join_end"]
-            await gld.bot_channel.send(join)
+        if gld.bot_channel != None:#alert that the bot has joined
+            await gld.bot_channel.send(join_msg(gld))
+            
             for c in gld.channels:
                 if gld.channels[c] == None:
-                    await gld.bot_channel.send(STRINGS["channel_error"] % NAMES[c])
+                    await gld.bot_channel.send(MSGS["channel_error"] % NAMES[c])
+    save()
+
 @bot.event
 async def on_disconnect():
     print(f"Disconnected on {time.ctime()}")
