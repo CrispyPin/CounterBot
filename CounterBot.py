@@ -43,7 +43,7 @@ class Parse:
             if num[i] in numerals:
                 num[i] = numerals[num[i]]
             elif num[i] != "_":
-                return "Invalid"
+                return False
             if num[i] == '_':
                 Thousands = not Thousands
             elif Thousands:
@@ -111,6 +111,11 @@ class Cchannel:
         
         return self.check(self.progress, num)
 
+    def save(self):
+        data = {"progress":self.progress,
+                "prev":self.prev}
+        return data
+
 
 def milestr(value, t, user, prev):
     date = datetime.date.today()
@@ -143,8 +148,19 @@ class CountGuild:
             if self.channels[channel] == None:
                 print(f"<{guild.name}> Couldn't find channel '{NAMES[channel]}'")
 
-    def save_str(self):#TODO: save as json!
-        data = {"test": 123}
+    def load(self, data):
+        for c in self.channels:
+            if self.channels[c]:
+                self.channels[c].progress = data[c]["progress"]
+                self.channels[c].prev = data[c]["prev"]
+
+    def save_str(self):
+        data = {}
+        for c in self.channels:
+            if self.channels[c]:
+                data[c] = self.channels[c].save()
+            else:
+                data[c] = None
         return data
 
     def try_count(self, message):
@@ -179,42 +195,32 @@ def is_master(user):
             return True
     return False
 
-def load():#TODO json
-    with open(save_file)as f:
-        alldata = f.read().split("\n\n")
-    for gld_data in alldata:
-        data = gld_data.split("\n")
-        name = data[0]
+def load():
+    with open(save_file) as f:
+        alldata = json.load(f)
+    for gldid in alldata:
+        data = alldata[gldid]
+        
         for gld in count_guilds:
-            if gld.name == name:
-                guild = count_guilds[gld]
+            if str(gld.id) == gldid:
+                count_guilds[gld].load(data)
                 break
         else:
-            print(f"Unused guild: {name} in save file")
-            continue
-        line = 1
-        for c in guild.counts:
-            guild.counts[c] = int(data[line])
-            line += 1
-        for c in guild.latest:
-            guild.latest[c] = data[line]
-            line += 1
-        for m in guild.milestones:
-            guild.milestones[m] = eval(data[line])
-            line += 1
+            print(f"Unused guild: {gldid} in save file")
     print("Loaded counting data")
     
-def save():#TODO json
+def save():
     data = {}
     for gld in count_guilds:
         data[gld.id] = count_guilds[gld].save_str()
+    
     with open(save_file, "w") as fp:
         json.dump(data, fp)
 
     print("Saved info")
 
 @bot.event
-async def on_message(message):
+async def on_message(message):#TODO something is broken
     if message.author == bot.user or type(message.channel) == discord.DMChannel:
         return
     gld = count_guilds[message.channel.guild]
@@ -232,8 +238,8 @@ async def on_message(message):
 @bot.command(name="find")
 async def find_mistakes(ctx, t="p", limit=None):# TODO: rewrite to work with new count functions
     gld = count_guilds[ctx.guild]
-##    if ctx.message.channel != gld.bot_channel:
-##        return
+    if ctx.message.channel != gld.bot_channel:
+        return
     if not is_master(ctx.author):
         await ctx.send(ERRORS["perm"])
         return
@@ -291,11 +297,9 @@ async def h(ctx):
 
 @bot.command(name="credits")
 async def cred(ctx):
-    gld = count_guilds[ctx.guild]
-##    if ctx.message.channel == gld.bot_channel:
     await ctx.send(MSGS["credits"])
 
-@bot.command(name="dave")#TODO change back to alephnull before deploy
+@bot.command(name="alephnull")
 async def kill_bot(ctx):
     if "316553438186045441" in ctx.author.mention:
         print(f"Closed by {ctx.author.name}#{ctx.author.discriminator} in guild: {ctx.guild.name}")
@@ -346,11 +350,11 @@ async def on_ready():
             for c in gld.channels:
                 if gld.channels[c] == None:
                     await gld.bot_channel.send(MSGS["channel_error"] % NAMES[c])
-    save()
 
 @bot.event
 async def on_disconnect():
     print(f"Disconnected on {time.ctime()}")
     save()
 
+print("Starting bot")
 bot.run(TOKEN)
