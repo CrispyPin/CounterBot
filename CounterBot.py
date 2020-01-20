@@ -108,8 +108,11 @@ class Cchannel:
 
     def try_count(self, txt):#TODO add milestones
         num = self.parse(txt.replace(" ",""))#TODO detect & strip off messages?
-        
-        return self.check(self.progress, num)
+        c = self.check(self.progress, num)
+        if c:
+            self.progress = num
+            return True
+        return False
 
     def save(self):
         data = {"progress":self.progress,
@@ -168,18 +171,22 @@ class CountGuild:
         #returns True if message should stay
         ctype = ""
         for c in self.channels:
-            if self.channels[c].channel == message.channel:
+            if self.channels[c].channel.id == message.channel.id:# BUG
                 ctype = c
                 break
         if not ctype:# not a count channel, shouldn't actually happen
             return True# don't want to delete if not in a count channel
 
         cch = self.channels[ctype]
-
+        
         if message.author.mention == cch.prev:
             return False
+        counted = cch.try_count(message.content)
 
-        return cch.try_count(message.content)
+        if counted:
+            cch.prev = message.author.mention
+            return True
+        return False
 
     def ms_update(self, t, user):
         if self.counts[t] % 1000 != 0:
@@ -220,12 +227,12 @@ def save():
     print("Saved info")
 
 @bot.event
-async def on_message(message):#TODO something is broken
+async def on_message(message):
     if message.author == bot.user or type(message.channel) == discord.DMChannel:
         return
     gld = count_guilds[message.channel.guild]
     
-    if message.channel in gld.channels.values():
+    if message.channel in [i.channel if i else None for i in gld.channels.values()]:
         counted = gld.try_count(message)
         if not counted:
             await message.delete()
@@ -284,8 +291,6 @@ async def setcount(ctx, t="p", amount="42"):
 @bot.command(name="count")
 async def getcount(ctx, t="c"):
     gld = count_guilds[ctx.guild]
-##    if ctx.message.channel != gld.bot_channel:
-##        return
     if t not in gld.counts:
         await gld.bot_channel.send(ERRORS["type"])
         return
