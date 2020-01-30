@@ -4,6 +4,11 @@ import time
 import json
 from discord.ext import commands
 
+# + milestones
+# + autosave
+# + find errors
+# + stripping text from messages
+
 with open("token.txt") as f:
     TOKEN = f.readline()
 
@@ -15,6 +20,8 @@ string_file = "./strings.json"
 presence = discord.Game(name="with numbers | .help")
 
 count_guilds = {}
+PREV_SAVE = time.time()
+SAVE_DEL = 10
 
 def reload_strings():
     global MSGS
@@ -33,7 +40,7 @@ reload_strings()
 class Parse:
     def roman(x):
         """Original by @Kantoros1#4862, modified"""
-        inp = x.split()[0]
+        inp = x
         numerals = {"I":1, "V":5, "X":10, "L":50, "C":100, "D":500, "M":1000}
         
         num = list(inp.upper().replace('__','_'))
@@ -61,19 +68,19 @@ class Parse:
         return result
 
     def int(x):
-        n = x.split()[0]
-        if n.isdecimal():
-            return int(n)
-        if len(n) > 1:
-            if n[0] == "-" and n[1:].isdecimal():
-                return int(n[1:])
-        return False
+        try:
+            return int(x)
+        except Exception:
+            return False
 
     def bin(x):
-        b = x.replace(" ", "")
-        if False in [i in ["0","1"]for i in b]:#find non 0/1 characters in the string
+        #if False in [i in ["0","1"]for i in x]:#find non 0/1 characters in the string
+        #    return False
+        #return int(x, 2)
+        try:
+            return int(x, 2)
+        except Exception:
             return False
-        return int(b, 2)
 
 class Ctypes:
     def inc(old, new):
@@ -86,6 +93,14 @@ class Ctypes:
         s = math.sqrt(new)
         return s == int(math.sqrt(old)) + 1
 
+def cutoff(content, chars="0123456789 "):# cut off message after number ends
+    out = ""
+    for c in content:
+        if c not in chars:
+            break
+        out += c if c != " " else ""
+    return out
+
 ## p n r b s
 
 CHECKS = {"p":Ctypes.inc, "n":Ctypes.dec, "r":Ctypes.inc,
@@ -93,6 +108,10 @@ CHECKS = {"p":Ctypes.inc, "n":Ctypes.dec, "r":Ctypes.inc,
 
 PARSERS = {"p":Parse.int, "n":Parse.int, "r":Parse.roman,
          "b":Parse.bin, "s":Parse.int}
+
+#move to json?
+CHARS = {"p":"0123456789 ", "n":"-0123456789 ", "r":"IVXLCDM_ ",
+         "b":"01 ", "s":"0123456789 "}
 
 class Cchannel:
     def __init__(self, channel, ctype):
@@ -106,8 +125,8 @@ class Cchannel:
         self.check = CHECKS[ctype]
         self.parse = PARSERS[ctype]
 
-    def try_count(self, txt):#TODO add milestones
-        num = self.parse(txt.replace(" ",""))#TODO detect & strip off messages?
+    def try_count(self, txt):
+        num = self.parse(cutoff(txt, CHARS[self.ctype]))
         c = self.check(self.progress, num)
         if c:
             self.progress = num
@@ -120,10 +139,12 @@ class Cchannel:
         return data
 
 
-def milestr(value, t, user, prev):
+def milestr(info):
+    value, t, user, prev = info
     date = datetime.date.today()
+    # move to json?
     datestr = f"{date.day}/{date.month} - {date.year}"
-    return f"`Milestone reached: {value} in` #{channel_names[t]} `by:` {user}`, with help from` {prev} `on {datestr}`"
+    return f"`Milestone reached: {value} in #{NAMES[t]} by:` {user}`, with help from` {prev} `on {datestr}`"
 
 class CountGuild:
     def __init__(self, guild):
@@ -171,7 +192,7 @@ class CountGuild:
         #returns True if message should stay
         ctype = ""
         for c in self.channels:
-            if self.channels[c].channel.id == message.channel.id:# BUG
+            if self.channels[c].channel.id == message.channel.id:
                 ctype = c
                 break
         if not ctype:# not a count channel, shouldn't actually happen
@@ -184,18 +205,23 @@ class CountGuild:
         counted = cch.try_count(message.content)
 
         if counted:
+            old = cch.prev
             cch.prev = message.author.mention
+            if cch.progress % 1000 == 0:
+                return (True, cch.progress, ctype, cch.prev, old)
+            
             return True
         return False
 
-    def ms_update(self, t, user):
-        if self.counts[t] % 1000 != 0:
-            return False
-        self.milestones[t].append(self.counts[t])
-        return milestr(self.counts[t], t, user, self.latest[t])
+#    def ms_update(self, t, user):
+#        if self.counts[t] % 1000 != 0:
+#            return False
+#        self.milestones[t].append(self.counts[t])
+#        return milestr(self.counts[t], t, user, self.latest[t])
 
-def is_master(user):
-    if user.mention == "<@316553438186045441>":
+async def is_master(user):
+    own = await bot.is_owner(user)
+    if own:
         return True
     for role in user.roles:
         if role.name.lower() == "count master":
@@ -224,7 +250,7 @@ def save():
     with open(save_file, "w") as fp:
         json.dump(data, fp)
 
-    print("Saved info")
+    PREV_SAVE = time.ctime()
 
 @bot.event
 async def on_message(message):
@@ -236,38 +262,44 @@ async def on_message(message):
         counted = gld.try_count(message)
         if not counted:
             await message.delete()
-        elif type(counted) == list:
-            if counted[1]:
-                await gld.milestone_channel.send(counted[1])
+            return
+        if type(counted) == tuple:
+            await gld.milestone_channel.send(milestr(counted[1:]))
+        if time.time() - PREV_SAVE >= SAVE_DEL:
+            save()
+        
     if message.channel == gld.bot_channel:
         await bot.process_commands(message)
 
 @bot.command(name="find")
-async def find_mistakes(ctx, t="p", limit=None):# TODO: rewrite to work with new count functions
+async def find_mistakes(ctx, t="p", limit=None):
     gld = count_guilds[ctx.guild]
-    if ctx.message.channel != gld.bot_channel:
-        return
-    if not is_master(ctx.author):
+    
+    if not await is_master(ctx.author):
         await ctx.send(ERRORS["perm"])
         return
-    if t not in gld.counts:
+    
+    if t not in gld.channels or gld.channels[t] == None:
         await gld.bot_channel.send(ERRORS["type"])
         return
     
-    await ctx.send(f"`Scanning for errors in #{channel_names[t]}`")
-    lim = to_num(limit)
-    lim = lim if lim != "Invalid" else None
-    history = await gld.channels[t].history(limit=lim).flatten()
+    await ctx.send(f"`Scanning for errors in #{NAMES[t]}`")
+    #TODO remember a safe point to not look through all messages
+    #TODO ignore messages with a certain reaction OR allow for whitelisting messages
+    lim = Parse.int(limit)
+    lim = lim if lim else None# False -> None
+    history = await gld.channels[t].channel.history(limit=lim).flatten()
     history.reverse()
-    new = history[0].content.split()[0]
-    old = eval(eval_num[t])
+    
+    new = history[0].content
+    old = PARSERS[t](cutoff(new, CHARS[t]))
 
     for msg in history[1:]:
-        new = msg.content.split()[0]
-        new = eval(eval_num[t])
-        if not eval(count_valid[t]):
-            await ctx.send(f"`Located miscount around {old} - {new}`")
-        old = new if new != "Invalid" else old
+        new = PARSERS[t](cutoff(msg.content, CHARS[t]))
+        if not CHECKS[t](old, new):
+            await ctx.send(f"`Located miscount or invalid number around {old} - {new}`")
+        if new:
+            old = new
     await ctx.send("`Done checking for errors.`")
 
 @bot.command(name="set")
@@ -276,12 +308,13 @@ async def setcount(ctx, t="p", amount="42"):
     if t not in gld.channels:
         await gld.bot_channel.send(ERRORS["type"])
         return
-    if not is_master(ctx.author):
+    if not await is_master(ctx.author):
         await ctx.send(ERRORS["perm"])
         return
-    n = int(amount) if amount.isdecimal() or (len(amount)>1
-                            and amount[0]=="-" and amount[1:].isdecimal()) else None
-    if n == None:
+    
+    n = Parse.int(amount)
+    
+    if not n:
         await ctx.send(ERRORS["num"])
         return
     gld.channels[t].progress = n
@@ -320,9 +353,7 @@ async def kill_bot(ctx):
 @bot.command(name="save")
 async def manual_save(ctx):
     gld = count_guilds[ctx.guild]
-    if ctx.message.channel != gld.bot_channel:
-        return
-    if not is_master(ctx.author):
+    if not await is_master(ctx.author):
         await ctx.send(ERRORS["perm"])
         return
     save()
