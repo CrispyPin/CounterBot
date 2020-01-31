@@ -2,6 +2,7 @@ import discord
 import datetime
 import time
 import json
+import math
 from discord.ext import commands
 
 # + milestones
