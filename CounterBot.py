@@ -324,10 +324,10 @@ async def setcount(ctx, t="p", amount="42"):
 @bot.command(name="count")
 async def getcount(ctx, t="c"):
     gld = count_guilds[ctx.guild]
-    if t not in gld.counts:
+    if t not in gld.channels or gld.channels[t] == None:
         await gld.bot_channel.send(ERRORS["type"])
         return
-    await gld.bot_channel.send(f"`#{NAMES[t]} progress is {gld.cchannels[t].progress}`")
+    await gld.bot_channel.send(f"`#{NAMES[t]} progress is {gld.channels[t].progress}`")
 
 @bot.command(name="help")
 async def h(ctx):
@@ -339,7 +339,7 @@ async def cred(ctx):
 
 @bot.command(name="alephnull")
 async def kill_bot(ctx):
-    if "316553438186045441" in ctx.author.mention:
+    if await is_master(ctx.author):
         print(f"Closed by {ctx.author.name}#{ctx.author.discriminator} in guild: {ctx.guild.name}")
         for guild in bot.guilds:
             gld = count_guilds[guild]
