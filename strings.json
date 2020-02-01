@@ -47,6 +47,5 @@
         "type": "`[Error] Unknown type. Use '.help' for help.`",
         "perm": "`[Error] Permission denied.`",
         "num": "`[Error] Invalid number.`"
-    },
-    "url": "https://raw.githubusercontent.com/CrispyPin/CounterBot/master/cat.png"
+    }
 }

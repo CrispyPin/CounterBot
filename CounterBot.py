@@ -5,10 +5,7 @@ import json
 import math
 from discord.ext import commands
 
-# + milestones
-# + autosave
-# + find errors
-# + stripping text from messages
+# + Cat in credits
 
 with open("token.txt") as f:
     TOKEN = f.readline()
@@ -28,13 +25,11 @@ def reload_strings():
     global MSGS
     global NAMES
     global ERRORS
-    global PINGURL
     with open(string_file) as f:
         data = json.load(f)
     MSGS = data["messages"]
     NAMES = data["names"]
     ERRORS = data["errors"]
-    PINGURL = data["url"]
     for k in MSGS:
         MSGS[k] = "".join(MSGS[k])
 
@@ -343,9 +338,8 @@ async def h(ctx):
 
 @bot.command(name="credits")
 async def cred(ctx):
-    embed = discord.Embed(description=MSGS["credits"])
-    embed.set_image(url=PINGURL)
-    await ctx.send(embed=embed)
+    img = discord.File("./cat.png")
+    await ctx.send(MSGS["credits"], file=img)
 
 @bot.command(name="alephnull")
 async def kill_bot(ctx):
