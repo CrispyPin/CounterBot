@@ -37,9 +37,9 @@
         "join_end": "\n**Please update if incorrect**```",
         "shutdown": "```ini\n[CounterBot has been deactivated] Cannot count beyond Aleph-null```",
         "credits": ["```",
-            "CounterBot made by: @CrispyPin#1149\n",
-            "Contributer:        @Kantoros1#4862\n",
-            "Moral support:      Pingu\n",
+            "CounterBot made by:           @CrispyPin#1149\n",
+            "Contributor:                  @Kantoros1#4862\n",
+            "Moral support:                Pingu\n",
             "Didn't knock the server down: Pingu\n",
             "```"]
     },
@@ -47,5 +47,6 @@
         "type": "`[Error] Unknown type. Use '.help' for help.`",
         "perm": "`[Error] Permission denied.`",
         "num": "`[Error] Invalid number.`"
-    }
+    },
+    "url": "https://raw.githubusercontent.com/CrispyPin/CounterBot/master/cat.png"
 }

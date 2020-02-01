@@ -28,11 +28,13 @@ def reload_strings():
     global MSGS
     global NAMES
     global ERRORS
+    global PINGURL
     with open(string_file) as f:
         data = json.load(f)
     MSGS = data["messages"]
     NAMES = data["names"]
     ERRORS = data["errors"]
+    PINGURL = data["url"]
     for k in MSGS:
         MSGS[k] = "".join(MSGS[k])
 
@@ -342,7 +344,7 @@ async def h(ctx):
 @bot.command(name="credits")
 async def cred(ctx):
     embed = discord.Embed(description=MSGS["credits"])
-    embed.set_image(url="http://placekitten.com/256/256")
+    embed.set_image(url=PINGURL)
     await ctx.send(embed=embed)
 
 @bot.command(name="alephnull")
