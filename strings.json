@@ -1,4 +1,5 @@
 {
+    "master_role": "count master",
     "names": {
         "p": "counting",
         "n": "counting-backwards",
@@ -6,6 +7,7 @@
         "b": "binary-counting",
         "s": "square-numbers"
     },
+    "status": "with numbers | .help",
     "messages": {
         "help": ["```ini\n",
             "-[List of commands]-``````css\n",
@@ -28,7 +30,7 @@
             "b = binary counting\n",
             "s = square number counting\n",
             "```"],
-        "channel_error": ["```css\n",
+        "channel_missing": ["```css\n",
             "[Error] Channel %r missing```"],
         "join": ["```ini\n",
             "[CounterBot 3.0 has connected.] Type .help for a list of commands.\n",
@@ -41,11 +43,22 @@
             "Contributor:                  @Kantoros1#4862\n",
             "Moral support:                Pingu\n",
             "Didn't knock the server down: Pingu\n",
-            "```"]
+            "```"],
+        "reload": "`Reloaded message strings.`",
+        "saved": "`Saved all counting data`",
+        "milestone": "`Milestone reached: %r in #CHANNEL by:` USER`, with help from` PREV `on DATE`",
+        "shutdown_ping": "`Pinging `OWNER` about shutdown`"
     },
     "errors": {
         "type": "`[Error] Unknown type. Use '.help' for help.`",
         "perm": "`[Error] Permission denied.`",
         "num": "`[Error] Invalid number.`"
+    },
+    "chars": {
+        "p": "0123456789 ",
+        "n": "-0123456789 ",
+        "r": "IVXLCDM_ ",
+        "b": "01 ",
+        "s": "0123456789 "
     }
 }

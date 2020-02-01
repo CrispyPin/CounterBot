@@ -5,7 +5,9 @@ import json
 import math
 from discord.ext import commands
 
-# + Cat in credits
+# + Reload strings via discord
+# ~ move strings to json
+# + notify CrispyPin if someone kills the bot
 
 with open("token.txt") as f:
     TOKEN = f.readline()
@@ -15,23 +17,25 @@ bot.remove_command("help")
 
 save_file = "./data.json"
 string_file = "./strings.json"
-presence = discord.Game(name="with numbers | .help")
 
 count_guilds = {}
 PREV_SAVE = time.time()
 SAVE_DEL = 10
 
 def reload_strings():
-    global MSGS
-    global NAMES
-    global ERRORS
+    global MSGS, NAMES, ERRORS, CHARS
+    global presence, MASTER_ROLE
     with open(string_file) as f:
         data = json.load(f)
     MSGS = data["messages"]
     NAMES = data["names"]
     ERRORS = data["errors"]
+    CHARS = data["chars"]
+    MASTER_ROLE = data["master_role"]
     for k in MSGS:
         MSGS[k] = "".join(MSGS[k])
+    
+    presence = discord.Game(name=data["status"])
 
 reload_strings()
 
@@ -68,16 +72,13 @@ class Parse:
     def int(x):
         try:
             return int(x)
-        except Exception:
+        except ValueError:
             return False
 
     def bin(x):
-        #if False in [i in ["0","1"]for i in x]:#find non 0/1 characters in the string
-        #    return False
-        #return int(x, 2)
         try:
             return int(x, 2)
-        except Exception:
+        except ValueError:
             return False
 
 class Ctypes:
@@ -106,10 +107,6 @@ CHECKS = {"p":Ctypes.inc, "n":Ctypes.dec, "r":Ctypes.inc,
 
 PARSERS = {"p":Parse.int, "n":Parse.int, "r":Parse.roman,
          "b":Parse.bin, "s":Parse.int}
-
-#move to json?
-CHARS = {"p":"0123456789 ", "n":"-0123456789 ", "r":"IVXLCDM_ ",
-         "b":"01 ", "s":"0123456789 "}
 
 class Cchannel:
     def __init__(self, channel, ctype):
@@ -140,9 +137,11 @@ class Cchannel:
 def milestr(info):
     value, t, user, prev = info
     date = datetime.date.today()
-    # move to json?
     datestr = f"{date.day}/{date.month} - {date.year}"
-    return f"`Milestone reached: {value} in #{NAMES[t]} by:` {user}`, with help from` {prev} `on {datestr}`"
+    message = MSGS["milestone"].replace("CHANNEL", NAMES[t]) % value
+    message = message.replace("USER", user).replace("PREV", prev)
+    message = message.replace("DATE", datestr)
+    return message
 
 class CountGuild:
     def __init__(self, guild):
@@ -211,18 +210,13 @@ class CountGuild:
             return True
         return False
 
-#    def ms_update(self, t, user):
-#        if self.counts[t] % 1000 != 0:
-#            return False
-#        self.milestones[t].append(self.counts[t])
-#        return milestr(self.counts[t], t, user, self.latest[t])
 
 async def is_master(user):
     own = await bot.is_owner(user)
     if own:
         return True
     for role in user.roles:
-        if role.name.lower() == "count master":
+        if role.name.lower() == MASTER_ROLE:
             return True
     return False
 
@@ -349,6 +343,9 @@ async def kill_bot(ctx):
             gld = count_guilds[guild]
             if gld.bot_channel != None:
                 await gld.bot_channel.send(MSGS["shutdown"])
+        ownid = "<@" + str(bot.owner_id) + ">"
+        if ctx.author.mention != ownid:
+            await ctx.send(MSGS["shutdown_ping"].replace("OWNER", ownid))
         await bot.close()
     else:
         print(f"{ctx.author.mention} tried to kill bot")
@@ -361,7 +358,13 @@ async def manual_save(ctx):
         await ctx.send(ERRORS["perm"])
         return
     save()
-    await ctx.send("`Saved all counting data`")
+    await ctx.send(MSGS["saved"])
+
+@bot.command(name="reload")
+async def reload(ctx):
+    reload_strings()
+    await bot.change_presence(activity=presence)
+    await ctx.send(MSGS["reload"])
 
 def join_msg(gld):
     join = MSGS["join"]
@@ -389,7 +392,7 @@ async def on_ready():
             
             for c in gld.channels:
                 if gld.channels[c] == None:
-                    await gld.bot_channel.send(MSGS["channel_error"] % NAMES[c])
+                    await gld.bot_channel.send(MSGS["channel_missing"] % NAMES[c])
 
 @bot.event
 async def on_disconnect():
