@@ -115,7 +115,7 @@ class Cchannel:
         self.name = channel.name
         self.ctype = ctype
         self.progress = 0
-        self.prev = "@someone"
+        self.prev = "<nobody>"
 
         self.check = CHECKS[ctype]
         self.parse = PARSERS[ctype]
@@ -147,7 +147,8 @@ class CountGuild:
     def __init__(self, guild):
         self.guild = guild
         self.bot_channel = None
-        self.milestone_channel = None
+        self.milestone_main = None
+        self.milestone_extra = None
         
         self.channels = {t:None for t in PARSERS}
         
@@ -155,7 +156,9 @@ class CountGuild:
             if channel.name == "bot":
                 self.bot_channel = channel
             elif channel.name == "milestones":
-                self.milestone_channel = channel
+                self.milestone_main = channel
+            elif channel.name == "milestones-extra":
+                self.milestone_extra = channel
             else:
                 for t in self.channels:
                     if NAMES[t] == channel.name:
@@ -163,8 +166,10 @@ class CountGuild:
         
         if self.bot_channel == None:
             print(f"<{guild.name}> Couldn't find channel 'bot'.")
-        if self.milestone_channel == None:
+        if self.milestone_main == None:
             print(f"<{guild.name}> Couldn't find channel 'milestones'.")
+        if self.milestone_extra == None:
+            print(f"<{guild.name}> Couldn't find channel 'milestones-extra'.")
         for channel in self.channels:
             if self.channels[channel] == None:
                 print(f"<{guild.name}> Couldn't find channel '{NAMES[channel]}'")
@@ -261,7 +266,12 @@ async def on_message(message):
             await message.delete()
             return
         if type(counted) == tuple:
-            await gld.milestone_channel.send(milestr(counted[1:]))
+            if counted[2] == "p":
+                if gld.milestone_main:
+                    await gld.milestone_main.send(milestr(counted[1:]))
+            else:
+                if gld.milestone_extra:
+                    await gld.milestone_extra.send(milestr(counted[1:]))
         if time.time() - PREV_SAVE >= SAVE_DEL:
             save()
         
@@ -339,6 +349,7 @@ async def cred(ctx):
 async def kill_bot(ctx):
     if await is_master(ctx.author):
         print(f"Closed by {ctx.author.name}#{ctx.author.discriminator} in guild: {ctx.guild.name}")
+        save()
         for guild in bot.guilds:
             gld = count_guilds[guild]
             if gld.bot_channel != None:
