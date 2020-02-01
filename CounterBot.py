@@ -5,10 +5,6 @@ import json
 import math
 from discord.ext import commands
 
-# + Reload strings via discord
-# ~ move strings to json
-# + notify CrispyPin if someone kills the bot
-
 with open("token.txt") as f:
     TOKEN = f.readline()
 

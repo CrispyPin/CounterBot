@@ -18,6 +18,7 @@
             ".set {t} {x} : manually set the count progress of type t to x\n",
             ".find {t} {L}: looks for errors in channel t. looks back to L if specified, else to start\n",
             ".save        : saves all counting info\n",
+            ".reload      : reloads strings without needing to restart\n",
             ".alephnull   : terminate CounterBot\n",
             "[Argument types]\n",
             "x = a number\n",
