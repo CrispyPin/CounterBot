@@ -230,8 +230,13 @@ async def is_master(user):
     return False
 
 def load():
-    with open(save_file) as f:
-        alldata = json.load(f)
+    try:
+        with open(save_file) as f:
+            alldata = json.load(f)
+    except FileNotFoundError:
+        save()
+        with open(save_file) as f:
+            alldata = json.load(f)
     for gldid in alldata:
         data = alldata[gldid]
         
@@ -336,7 +341,9 @@ async def h(ctx):
 
 @bot.command(name="credits")
 async def cred(ctx):
-    await ctx.send(MSGS["credits"])
+    embed = discord.Embed(description=MSGS["credits"])
+    embed.set_image(url="http://placekitten.com/256/256")
+    await ctx.send(embed=embed)
 
 @bot.command(name="alephnull")
 async def kill_bot(ctx):
