@@ -205,7 +205,7 @@ class CountGuild:
         if counted:
             old = cch.prev
             cch.prev = message.author.mention
-            if cch.progress % 1000 == 0:
+            if abs(cch.progress) % 1000 == 0:
                 return (True, cch.progress, ctype, cch.prev, old)
             
             return True
