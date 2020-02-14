@@ -5,7 +5,7 @@ import json
 import math
 from discord.ext import commands
 
-with open("token.txt") as f:
+with open("./token.txt") as f:
     TOKEN = f.readline()
 
 bot = commands.Bot(command_prefix=".")
