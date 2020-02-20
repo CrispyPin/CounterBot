@@ -5,6 +5,12 @@ import json
 import math
 from discord.ext import commands
 
+# + reset last counter
+# + display downtime on reconnect
+# + custom milestone multiples
+# + manually add milestones
+
+
 with open("./token.txt") as f:
     TOKEN = f.readline()
 
@@ -17,9 +23,11 @@ string_file = "./strings.json"
 count_guilds = {}
 PREV_SAVE = time.time()
 SAVE_DEL = 10
+DOWNTIME = -1
+DISCONNECT = 0
 
 def reload_strings():
-    global MSGS, NAMES, ERRORS, CHARS
+    global MSGS, NAMES, ERRORS, CHARS, MSFREQ
     global presence, MASTER_ROLE
     with open(string_file) as f:
         data = json.load(f)
@@ -27,6 +35,7 @@ def reload_strings():
     NAMES = data["names"]
     ERRORS = data["errors"]
     CHARS = data["chars"]
+    MSFREQ = data["milestone_freq"]
     MASTER_ROLE = data["master_role"]
     for k in MSGS:
         MSGS[k] = "".join(MSGS[k])
@@ -86,7 +95,7 @@ class Ctypes:
     
     def sqr(old, new):
         s = math.sqrt(new)
-        return s == int(math.sqrt(old)) + 1
+        return s == old + 1
 
 def cutoff(content, chars="0123456789 "):# cut off message after number ends
     out = ""
@@ -111,7 +120,7 @@ class Cchannel:
         self.name = channel.name
         self.ctype = ctype
         self.progress = 0
-        self.prev = "<nobody>"
+        self.prev = "<prev_user>"
 
         self.check = CHECKS[ctype]
         self.parse = PARSERS[ctype]
@@ -172,7 +181,7 @@ class CountGuild:
 
     def load(self, data):
         for c in self.channels:
-            if self.channels[c]:
+            if data[c]:
                 self.channels[c].progress = data[c]["progress"]
                 self.channels[c].prev = data[c]["prev"]
 
@@ -205,7 +214,7 @@ class CountGuild:
         if counted:
             old = cch.prev
             cch.prev = message.author.mention
-            if abs(cch.progress) % 1000 == 0:
+            if abs(cch.progress) % MSFREQ[ctype] == 0:
                 return (True, cch.progress, ctype, cch.prev, old)
             
             return True
@@ -355,7 +364,7 @@ async def kill_bot(ctx):
             await ctx.send(MSGS["shutdown_ping"].replace("OWNER", ownid))
         await bot.close()
     else:
-        print(f"{ctx.author.mention} tried to kill bot")
+        print(f"{ctx.author.name}#{ctx.author.discriminator} tried to kill the bot")
         await ctx.send(ERRORS["perm"])
 
 @bot.command(name="save")
@@ -367,14 +376,55 @@ async def manual_save(ctx):
     save()
     await ctx.send(MSGS["saved"])
 
+@bot.command(name="milestone")
+async def manual_milestone(ctx, value, t, user, prev):
+    gld = count_guilds[ctx.guild]
+    if not await is_master(ctx.author):
+        await ctx.send(ERRORS["perm"])
+        return
+    
+    n = Parse.int(value)
+    
+    if not n:
+        await ctx.send(ERRORS["num"])
+        return
+    if t not in gld.channels:
+        await gld.bot_channel.send(ERRORS["type"])
+        return
+
+    data = (n, t, user, prev)
+    if t == "p":
+        if gld.milestone_main:
+            await gld.milestone_main.send(milestr(data))
+    else:
+        if gld.milestone_extra:
+            await gld.milestone_extra.send(milestr(data))
+
+
+
 @bot.command(name="reload")
 async def reload(ctx):
     reload_strings()
     await bot.change_presence(activity=presence)
     await ctx.send(MSGS["reload"])
 
+@bot.command(name="resetusers")
+async def reset_last_counter(ctx):
+    #globally
+    if not await is_master(ctx.author):
+        await ctx.send(ERRORS["perm"])
+        return
+    for cg in count_guilds:
+        for ctype in count_guilds[cg].channels:
+            if count_guilds[cg].channels[ctype] != None:
+                count_guilds[cg].channels[ctype].prev = "<prev_user>"
+    await ctx.send(MSGS["reset_users"])
+
 def join_msg(gld):
-    join = MSGS["join"]
+    if DOWNTIME == -1:
+        join = MSGS["join"]
+    else:
+        join = MSGS["rejoin"] % DOWNTIME
     for ctype in gld.channels:
         if gld.channels[ctype]:
             join += MSGS["progress"].replace("CHANNEL",NAMES[ctype])%gld.channels[ctype].progress
@@ -394,6 +444,7 @@ async def on_ready():
     load()
     for guild in count_guilds:
         gld = count_guilds[guild]
+        
         if gld.bot_channel != None:#alert that the bot has joined
             await gld.bot_channel.send(join_msg(gld))
             
@@ -402,8 +453,17 @@ async def on_ready():
                     await gld.bot_channel.send(MSGS["channel_missing"] % NAMES[c])
 
 @bot.event
+async def on_connect():
+    global DOWNTIME
+    if DOWNTIME != -1:
+        DOWNTIME = time.ctime() - DISCONNECT
+        print(f"reconnected after {DOWNTIME} seconds")
+
+@bot.event
 async def on_disconnect():
-    print(f"Disconnected on {time.ctime()}")
+    global DISCONNECT
+    DISCONNECT = time.ctime()
+    print(f"Disconnected on {DISCONNECT}")
     save()
 
 print("Starting bot")

@@ -19,11 +19,14 @@
             ".find {t} {L}: looks for errors in channel t. looks back to L if specified, else to start\n",
             ".save        : saves all counting info\n",
             ".reload      : reloads strings without needing to restart\n",
+            ".resetusers  : resets last user on all channels\n",
+            ".milestone {x} {t} {u} {u}: manually add milestone in case one was missed\n",
             ".alephnull   : terminate CounterBot\n",
             "[Argument types]\n",
             "x = a number\n",
             "L = limit\n",
             "t = type of counting\n",
+            "u = a user (mention them)\n",
             "[Values for t]\n",
             "p = positive counting\n",
             "n = negative counting\n",
@@ -34,7 +37,10 @@
         "channel_missing": ["```css\n",
             "[Error] Channel %r missing```"],
         "join": ["```ini\n",
-            "[CounterBot 3.0 has connected.] Type .help for a list of commands.\n",
+            "[CounterBot 3 has connected.] Type .help for a list of commands.\n",
+            "``````md"],
+        "rejoin": ["```ini\n",
+            "[CounterBot 3 has reconnected.] Downtime: %r \nType .help for a list of commands.\n",
             "``````md"],
         "progress": "\n#CHANNEL progress is %r.",
         "join_end": "\n**Please update if incorrect**```",
@@ -47,6 +53,7 @@
             "```"],
         "reload": "`Reloaded message strings.`",
         "saved": "`Saved all counting data`",
+        "reset_users": "`Reset previous user for all channels.`",
         "milestone": "`Milestone reached: %r in #CHANNEL by:` USER`, with help from` PREV `on DATE`",
         "shutdown_ping": "`Pinging `OWNER` about shutdown`"
     },
@@ -61,5 +68,12 @@
         "r": "IVXLCDM_ ",
         "b": "01 ",
         "s": "0123456789 "
+    },
+    "milestone_freq": {
+        "p": 1000,
+        "n": 1000,
+        "r": 1000,
+        "b": 1024,
+        "s": 1000
     }
 }
