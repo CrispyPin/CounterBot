@@ -13,6 +13,7 @@
             "-[List of commands]-``````css\n",
             ".help     : show this list\n",
             ".count {t}: show counting progress of type t\n",
+            ".log      : send a file with a log of counting mistakes\n",
             ".credits  : show info on who made this bot\n",
             "[Admin commands]\n",
             ".set {t} {x} : manually set the count progress of type t to x\n",
@@ -53,6 +54,7 @@
             "```"],
         "reload": "`Reloaded message strings.`",
         "saved": "`Saved all counting data`",
+        "getlog": "`Here is a log of counting mistakes:`",
         "reset_users": "`Reset previous user for all channels.`",
         "milestone": "`Milestone reached: %r in #CHANNEL by:` USER`, with help from` PREV `on DATE`",
         "shutdown_ping": "`Pinging `OWNER` about shutdown`"

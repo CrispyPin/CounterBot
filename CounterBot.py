@@ -5,10 +5,7 @@ import json
 import math
 from discord.ext import commands
 
-# + reset last counter
-# + display downtime on reconnect
-# + custom milestone multiples
-# + manually add milestones
+# + logging mistakes
 
 
 with open("./token.txt") as f:
@@ -43,6 +40,14 @@ def reload_strings():
     presence = discord.Game(name=data["status"])
 
 reload_strings()
+
+
+def log_miscount(message):
+    line = f"{time.ctime()} [{message.channel.guild.name}] #{message.channel.name} "
+    line += f'{message.author.mention} "{message.content}"\n'
+    with open("./log.txt", "a") as f:
+        f.write(line)
+
 
 class Parse:
     def roman(x):
@@ -268,6 +273,7 @@ async def on_message(message):
     if message.channel in [i.channel if i else None for i in gld.channels.values()]:
         counted = gld.try_count(message)
         if not counted:
+            log_miscount(message)
             await message.delete()
             return
         if type(counted) == tuple:
@@ -400,7 +406,10 @@ async def manual_milestone(ctx, value, t, user, prev):
         if gld.milestone_extra:
             await gld.milestone_extra.send(milestr(data))
 
-
+@bot.command(name="log")
+async def getlog(ctx):
+    file = discord.File("./log.txt")
+    await ctx.send(MSGS["getlog"], file=file)
 
 @bot.command(name="reload")
 async def reload(ctx):
