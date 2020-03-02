@@ -5,8 +5,6 @@ import json
 import math
 from discord.ext import commands
 
-# + logging mistakes
-
 
 with open("./token.txt") as f:
     TOKEN = f.readline()
@@ -45,8 +43,8 @@ reload_strings()
 def log_miscount(message):
     line = f"{time.ctime()} [{message.channel.guild.name}] #{message.channel.name} "
     line += f'{message.author.mention} "{message.content}"\n'
-    with open("./log.txt", "a") as f:
-        f.write(line)
+    with open("./log.txt", "ab") as f:
+        f.write(line.encode())
 
 
 class Parse:
