@@ -98,7 +98,7 @@ class Ctypes:
     
     def sqr(old, new):
         s = math.sqrt(new)
-        return s == old + 1
+        return s == math.sqrt(old) + 1
 
 def cutoff(content, chars="0123456789 "):# cut off message after number ends
     out = ""
