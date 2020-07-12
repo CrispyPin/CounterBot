@@ -345,6 +345,14 @@ async def getcount(ctx, t="c"):
         return
     await gld.bot_channel.send(f"`#{NAMES[t]} progress is {gld.channels[t].progress}`")
 
+@bot.command(name="convert")
+async def convert(ctx, t, val):
+    gld = count_guilds[ctx.guild]
+    if t not in gld.channels or gld.channels[t] == None:
+        await gld.bot_channel.send(ERRORS["type"])
+        return
+    await gld.bot_channel.send(f"`{PARSERS[t](val)}`")
+
 @bot.command(name="help")
 async def h(ctx):
     await ctx.send(MSGS["help"])
