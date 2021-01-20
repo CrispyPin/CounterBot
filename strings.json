@@ -15,6 +15,7 @@
             ".count   {t}: show counting progress of type t\n",
             ".log        : send a file with a log of counting mistakes\n",
             ".convert {t}: parse a number from a channel, most useful for roman\n",
+            ".ping       : check if the bot is online/working\n",
             ".credits    : show info on who made this bot\n",
             "[Admin commands]\n",
             ".set {t} {x} : manually set the count progress of type t to x\n",

@@ -357,6 +357,10 @@ async def convert(ctx, t, val):
 async def h(ctx):
     await ctx.send(MSGS["help"])
 
+@bot.command(name="ping")
+async def ping(ctx):
+    await ctx.send("```pong```")
+
 @bot.command(name="credits")
 async def cred(ctx):
     img = discord.File("./cat.png")
